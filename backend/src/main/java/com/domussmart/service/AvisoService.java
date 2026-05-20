@@ -18,6 +18,10 @@ public class AvisoService {
         return avisoRepository.findAll();
     }
 
+    public List<Aviso> listarPorCondominio(Long condominioId) {
+        return avisoRepository.findByCondominioId(condominioId);
+    }
+
     public Optional<Aviso> buscarPorId(Long id) {
         return avisoRepository.findById(id);
     }

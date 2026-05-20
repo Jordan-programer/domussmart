@@ -18,6 +18,10 @@ public class TaxaCondominialService {
         return taxaCondominialRepository.findAll();
     }
 
+    public List<TaxaCondominial> listarPorCondominio(Long condominioId) {
+        return taxaCondominialRepository.findByUnidadeBlocoCondominioId(condominioId);
+    }
+
     public Optional<TaxaCondominial> buscarPorId(Long id) {
         return taxaCondominialRepository.findById(id);
     }

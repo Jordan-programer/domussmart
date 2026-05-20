@@ -18,6 +18,10 @@ public class PagamentoService {
         return pagamentoRepository.findAll();
     }
 
+    public List<Pagamento> listarPorCondominio(Long condominioId) {
+        return pagamentoRepository.findByTaxaCondominialUnidadeBlocoCondominioId(condominioId);
+    }
+
     public Optional<Pagamento> buscarPorId(Long id) {
         return pagamentoRepository.findById(id);
     }

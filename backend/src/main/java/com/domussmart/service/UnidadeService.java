@@ -18,6 +18,10 @@ public class UnidadeService {
         return unidadeRepository.findAll();
     }
 
+    public List<Unidade> listarPorCondominio(Long condominioId) {
+        return unidadeRepository.findByBlocoCondominioId(condominioId);
+    }
+
     public Optional<Unidade> buscarPorId(Long id) {
         return unidadeRepository.findById(id);
     }

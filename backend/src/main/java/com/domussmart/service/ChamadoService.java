@@ -18,6 +18,10 @@ public class ChamadoService {
         return chamadoRepository.findAll();
     }
 
+    public List<Chamado> listarPorCondominio(Long condominioId) {
+        return chamadoRepository.findByUnidadeBlocoCondominioId(condominioId);
+    }
+
     public Optional<Chamado> buscarPorId(Long id) {
         return chamadoRepository.findById(id);
     }

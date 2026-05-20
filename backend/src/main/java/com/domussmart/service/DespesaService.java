@@ -18,6 +18,10 @@ public class DespesaService {
         return despesaRepository.findAll();
     }
 
+    public List<Despesa> listarPorCondominio(Long condominioId) {
+        return despesaRepository.findByCondominioId(condominioId);
+    }
+
     public Optional<Despesa> buscarPorId(Long id) {
         return despesaRepository.findById(id);
     }

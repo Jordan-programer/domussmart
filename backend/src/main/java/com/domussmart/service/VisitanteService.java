@@ -18,6 +18,10 @@ public class VisitanteService {
         return visitanteRepository.findAll();
     }
 
+    public List<Visitante> listarPorCondominio(Long condominioId) {
+        return visitanteRepository.findByUnidadeBlocoCondominioId(condominioId);
+    }
+
     public Optional<Visitante> buscarPorId(Long id) {
         return visitanteRepository.findById(id);
     }

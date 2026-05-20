@@ -23,4 +23,8 @@ public class Aviso {
     private LocalDateTime dataPublicacao = LocalDateTime.now();
 
     private boolean fixado;
+
+    @ManyToOne
+    @JoinColumn(name = "condominio_id")
+    private Condominio condominio;
 }

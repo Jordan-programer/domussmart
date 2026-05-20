@@ -45,8 +45,20 @@ public class AuthenticationController {
 
         Long condominioId = usuario.getCondominio() != null ? usuario.getCondominio().getId() : null;
         String condominioNome = usuario.getCondominio() != null ? usuario.getCondominio().getNome() : null;
+        Long moradorId = usuario.getMorador() != null ? usuario.getMorador().getId() : null;
+        Long unidadeId = (usuario.getMorador() != null && usuario.getMorador().getUnidade() != null) 
+                ? usuario.getMorador().getUnidade().getId() : null;
 
-        return ResponseEntity.ok(new LoginResponseDTO(token, usuario.getEmail(), usuario.getRole().name(), condominioId, condominioNome, usuario.getId()));
+        return ResponseEntity.ok(new LoginResponseDTO(
+            token, 
+            usuario.getEmail(), 
+            usuario.getRole().name(), 
+            condominioId, 
+            condominioNome, 
+            usuario.getId(), 
+            moradorId, 
+            unidadeId
+        ));
     }
 
     @PostMapping("/register")
@@ -72,5 +84,61 @@ public class AuthenticationController {
         this.usuarioRepository.save(newUser);
 
         return ResponseEntity.ok().build();
+    }
+
+    public record MoradorSelfRegisterDTO(String email, String nif, String senha) {}
+
+    @PostMapping("/morador/register")
+    public ResponseEntity<?> registrarMorador(@RequestBody MoradorSelfRegisterDTO data) {
+        if (data.email() == null || data.email().isBlank() ||
+            data.nif() == null || data.nif().isBlank() ||
+            data.senha() == null || data.senha().isBlank()) {
+            return ResponseEntity.badRequest().body("Todos os campos (e-mail, NIF e senha) são obrigatórios.");
+        }
+
+        if (usuarioRepository.findByEmail(data.email()).isPresent()) {
+            return ResponseEntity.badRequest().body("Este e-mail já possui um usuário cadastrado no sistema.");
+        }
+
+        var moradorOpt = moradorRepository.findByEmailAndNif(data.email(), data.nif());
+        if (moradorOpt.isEmpty()) {
+            return ResponseEntity.status(404).body("Morador não pré-cadastrado no condomínio com este e-mail e NIF. Por favor, verifique os seus dados ou fale com o síndico.");
+        }
+
+        var morador = moradorOpt.get();
+
+        if (usuarioRepository.findByMoradorId(morador.getId()).isPresent()) {
+            return ResponseEntity.badRequest().body("Este morador já possui um usuário de login ativo no sistema.");
+        }
+
+        String encryptedPassword = new BCryptPasswordEncoder().encode(data.senha());
+        Usuario newUser = new Usuario();
+        newUser.setEmail(data.email());
+        newUser.setSenha(encryptedPassword);
+        newUser.setRole(Usuario.Role.MORADOR);
+        newUser.setMorador(morador);
+
+        if (morador.getUnidade() != null && morador.getUnidade().getBloco() != null &&
+            morador.getUnidade().getBloco().getCondominio() != null) {
+            newUser.setCondominio(morador.getUnidade().getBloco().getCondominio());
+        }
+
+        usuarioRepository.save(newUser);
+
+        var token = tokenService.gerarToken(newUser);
+        Long condominioId = newUser.getCondominio() != null ? newUser.getCondominio().getId() : null;
+        String condominioNome = newUser.getCondominio() != null ? newUser.getCondominio().getNome() : null;
+        Long unidadeId = morador.getUnidade() != null ? morador.getUnidade().getId() : null;
+
+        return ResponseEntity.ok(new LoginResponseDTO(
+            token,
+            newUser.getEmail(),
+            newUser.getRole().name(),
+            condominioId,
+            condominioNome,
+            newUser.getId(),
+            morador.getId(),
+            unidadeId
+        ));
     }
 }

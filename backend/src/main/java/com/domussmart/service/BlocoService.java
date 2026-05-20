@@ -18,6 +18,10 @@ public class BlocoService {
         return blocoRepository.findAll();
     }
 
+    public List<Bloco> listarPorCondominio(Long condominioId) {
+        return blocoRepository.findByCondominioId(condominioId);
+    }
+
     public Optional<Bloco> buscarPorId(Long id) {
         return blocoRepository.findById(id);
     }

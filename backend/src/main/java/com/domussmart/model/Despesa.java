@@ -24,4 +24,8 @@ public class Despesa {
     private LocalDate dataVencimento;
 
     private boolean paga;
+
+    @ManyToOne
+    @JoinColumn(name = "condominio_id")
+    private Condominio condominio;
 }

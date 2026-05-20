@@ -18,6 +18,10 @@ public class MoradorService {
         return moradorRepository.findAll();
     }
 
+    public List<Morador> listarPorCondominio(Long condominioId) {
+        return moradorRepository.findByUnidadeBlocoCondominioId(condominioId);
+    }
+
     public Optional<Morador> buscarPorId(Long id) {
         return moradorRepository.findById(id);
     }

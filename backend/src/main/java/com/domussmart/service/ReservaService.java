@@ -18,6 +18,10 @@ public class ReservaService {
         return reservaRepository.findAll();
     }
 
+    public List<Reserva> listarPorCondominio(Long condominioId) {
+        return reservaRepository.findByMoradorUnidadeBlocoCondominioId(condominioId);
+    }
+
     public Optional<Reserva> buscarPorId(Long id) {
         return reservaRepository.findById(id);
     }
