@@ -8,4 +8,6 @@ import java.util.List;
 @Repository
 public interface VisitanteRepository extends JpaRepository<Visitante, Long> {
     List<Visitante> findByUnidadeBlocoCondominioId(Long condominioId);
+    List<Visitante> findByUnidadeId(Long unidadeId);
+    List<Visitante> findByRegistradoPorId(Long registradoPorId);
 }

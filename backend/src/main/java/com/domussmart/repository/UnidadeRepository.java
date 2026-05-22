@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface UnidadeRepository extends JpaRepository<Unidade, Long> {
     List<Unidade> findByBlocoCondominioId(Long condominioId);
+    List<Unidade> findByBlocoId(Long blocoId);
 }

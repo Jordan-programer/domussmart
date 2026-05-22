@@ -7,6 +7,7 @@ export default function Chamados() {
   const [chamados, setChamados] = useState([]);
   const [moradores, setMoradores] = useState([]);
   const [unidades, setUnidades] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -30,7 +31,25 @@ export default function Chamados() {
     fetchChamados();
     fetchMoradores();
     fetchUnidades();
+    if (localStorage.getItem('role') === 'MORADOR') {
+      fetchCurrentUser();
+    }
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/v1/usuarios/me', { headers });
+      setCurrentUser(response.data);
+      if (response.data.moradorId) {
+        localStorage.setItem('moradorId', response.data.moradorId);
+      }
+      if (response.data.unidadeId) {
+        localStorage.setItem('unidadeId', response.data.unidadeId);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados do usuário:', err);
+    }
+  };
 
   const fetchChamados = async () => {
     try {
@@ -80,10 +99,23 @@ export default function Chamados() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const activeMoradorId = localStorage.getItem('role') === 'MORADOR' 
+        ? (currentUser?.moradorId || localStorage.getItem('moradorId'))
+        : formData.moradorId;
+      
+      const activeUnidadeId = localStorage.getItem('role') === 'MORADOR' 
+        ? (currentUser?.unidadeId || localStorage.getItem('unidadeId'))
+        : formData.unidadeId;
+
+      if (!activeMoradorId || !activeUnidadeId) {
+        alert('Erro: Morador ou Unidade não identificados. Certifique-se de que sua conta está vinculada a um perfil de morador com unidade.');
+        return;
+      }
+
       const payload = {
         descricao: formData.descricao,
-        morador: { id: parseInt(formData.moradorId) },
-        unidade: { id: parseInt(formData.unidadeId) },
+        morador: { id: parseInt(activeMoradorId) },
+        unidade: { id: parseInt(activeUnidadeId) },
         status: formData.status
       };
 
@@ -129,7 +161,12 @@ export default function Chamados() {
 
   const openNewModal = () => {
     setEditingItem(null);
-    setFormData({ moradorId: '', unidadeId: '', descricao: '', status: 'ABERTO' });
+    setFormData({ 
+      moradorId: localStorage.getItem('role') === 'MORADOR' ? (currentUser?.moradorId || localStorage.getItem('moradorId') || '') : '', 
+      unidadeId: localStorage.getItem('role') === 'MORADOR' ? (currentUser?.unidadeId || localStorage.getItem('unidadeId') || '') : '', 
+      descricao: '', 
+      status: 'ABERTO' 
+    });
     setIsModalOpen(true);
   };
 
@@ -222,7 +259,7 @@ export default function Chamados() {
                       </span>
                     </td>
                     <td style={{ padding: '12px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
-                      {chamado.status === 'ABERTO' && (
+                      {localStorage.getItem('role') !== 'MORADOR' && chamado.status === 'ABERTO' && (
                         <button 
                           onClick={() => handleStatusChange(chamado, 'EM_ANDAMENTO')}
                           style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', border: 'none', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}
@@ -231,7 +268,7 @@ export default function Chamados() {
                           <Play size={14} />
                         </button>
                       )}
-                      {chamado.status === 'EM_ANDAMENTO' && (
+                      {localStorage.getItem('role') !== 'MORADOR' && chamado.status === 'EM_ANDAMENTO' && (
                         <button 
                           onClick={() => handleStatusChange(chamado, 'CONCLUIDO')}
                           style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: 'none', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}
@@ -240,12 +277,16 @@ export default function Chamados() {
                           <Check size={14} />
                         </button>
                       )}
-                      <button onClick={() => handleEdit(chamado)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                        <Edit size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(chamado.id)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                        <Trash2 size={16} />
-                      </button>
+                      {(localStorage.getItem('role') !== 'MORADOR' || chamado.status === 'ABERTO') && (
+                        <>
+                          <button onClick={() => handleEdit(chamado)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                            <Edit size={16} />
+                          </button>
+                          <button onClick={() => handleDelete(chamado.id)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -280,38 +321,56 @@ export default function Chamados() {
             </h3>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Morador (Dropdown) */}
+              {/* Morador (Dropdown ou bloqueado para Morador) */}
               <div style={{ position: 'relative' }}>
                 <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <select 
-                  name="moradorId" value={formData.moradorId} onChange={handleInputChange}
-                  style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
-                  required
-                >
-                  <option value="" style={{ background: '#0f172a' }}>Selecione o Morador</option>
-                  {moradores.map((morador) => (
-                    <option key={morador.id} value={morador.id} style={{ background: '#0f172a' }}>
-                      {morador.nome}
-                    </option>
-                  ))}
-                </select>
+                {localStorage.getItem('role') === 'MORADOR' ? (
+                  <input 
+                    type="text" 
+                    value={currentUser?.nome || 'Carregando perfil...'} 
+                    disabled 
+                    style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', color: 'var(--text-muted)', cursor: 'not-allowed' }}
+                  />
+                ) : (
+                  <select 
+                    name="moradorId" value={formData.moradorId} onChange={handleInputChange}
+                    style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                    required
+                  >
+                    <option value="" style={{ background: '#0f172a' }}>Selecione o Morador</option>
+                    {moradores.map((morador) => (
+                      <option key={morador.id} value={morador.id} style={{ background: '#0f172a' }}>
+                        {morador.nome}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
-              {/* Unidade (Dropdown) */}
+              {/* Unidade (Dropdown ou bloqueado para Morador) */}
               <div style={{ position: 'relative' }}>
                 <Home size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <select 
-                  name="unidadeId" value={formData.unidadeId} onChange={handleInputChange}
-                  style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
-                  required
-                >
-                  <option value="" style={{ background: '#0f172a' }}>Selecione a Unidade</option>
-                  {unidades.map((unidade) => (
-                    <option key={unidade.id} value={unidade.id} style={{ background: '#0f172a' }}>
-                      Unidade {unidade.numero} ({unidade.bloco?.nome || 'Sem Bloco'})
-                    </option>
-                  ))}
-                </select>
+                {localStorage.getItem('role') === 'MORADOR' ? (
+                  <input 
+                    type="text" 
+                    value={currentUser ? `Minha Unidade` : 'Carregando unidade...'} 
+                    disabled 
+                    style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', color: 'var(--text-muted)', cursor: 'not-allowed' }}
+                  />
+                ) : (
+                  <select 
+                    name="unidadeId" value={formData.unidadeId} onChange={handleInputChange}
+                    style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                    required
+                  >
+                    <option value="" style={{ background: '#0f172a' }}>Selecione a Unidade</option>
+                    {unidades.map((unidade) => (
+                      <option key={unidade.id} value={unidade.id} style={{ background: '#0f172a' }}>
+                        Unidade {unidade.numero} ({unidade.bloco?.nome || 'Sem Bloco'})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Descrição */}

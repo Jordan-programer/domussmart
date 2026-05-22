@@ -4,8 +4,10 @@ import { Plus, Edit, Trash2, X, User, CreditCard, Home, Clock, Check, Search } f
 import axios from 'axios';
 
 export default function Visitantes() {
+  const isMorador = localStorage.getItem('role') === 'MORADOR';
   const [visitantes, setVisitantes] = useState([]);
   const [unidades, setUnidades] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,7 +30,25 @@ export default function Visitantes() {
     }
     fetchVisitantes();
     fetchUnidades();
+    if (isMorador) {
+      fetchCurrentUser();
+    }
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/v1/usuarios/me', { headers });
+      setCurrentUser(response.data);
+      if (response.data.moradorId) {
+        localStorage.setItem('moradorId', response.data.moradorId);
+      }
+      if (response.data.unidadeId) {
+        localStorage.setItem('unidadeId', response.data.unidadeId);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados do usuário:', err);
+    }
+  };
 
   const fetchVisitantes = async () => {
     try {
@@ -68,10 +88,19 @@ export default function Visitantes() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const activeUnidadeId = isMorador 
+        ? (currentUser?.unidadeId || localStorage.getItem('unidadeId'))
+        : formData.unidadeId;
+
+      if (!activeUnidadeId) {
+        alert('Erro: Unidade não identificada. Por favor, certifique-se de que sua conta está vinculada a uma unidade.');
+        return;
+      }
+
       const payload = {
         nome: formData.nome,
         nif: formData.nif,
-        unidade: { id: parseInt(formData.unidadeId) },
+        unidade: { id: parseInt(activeUnidadeId) },
         registradoPor: { id: parseInt(userId) } // Usuário logado que está registrando
       };
 
@@ -120,7 +149,11 @@ export default function Visitantes() {
 
   const openNewModal = () => {
     setEditingItem(null);
-    setFormData({ nome: '', nif: '', unidadeId: '' });
+    setFormData({ 
+      nome: '', 
+      nif: '', 
+      unidadeId: isMorador ? (currentUser?.unidadeId || localStorage.getItem('unidadeId') || '') : '' 
+    });
     setIsModalOpen(true);
   };
 
@@ -130,8 +163,16 @@ export default function Visitantes() {
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   };
 
+  // Resolvendo número da unidade do morador logado
+  const myUnidadeId = currentUser?.unidadeId || parseInt(localStorage.getItem('unidadeId'));
+  const myUnidade = unidades.find(u => u.id === myUnidadeId);
+  const myUnidadeNumero = myUnidade?.numero || '';
+
   // Filtragem dos visitantes
   const filteredVisitantes = visitantes.filter((visitante) => {
+    if (isMorador) {
+      return visitante.unidade?.id === myUnidadeId;
+    }
     const search = searchTerm.toLowerCase();
     return (
       visitante.nome.toLowerCase().includes(search) ||
@@ -145,8 +186,12 @@ export default function Visitantes() {
       <div className="glass" style={{ padding: '24px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
           <div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'white' }}>Controle de Visitantes</h3>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Registro de entradas e saídas da portaria.</p>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: '600', color: 'white' }}>
+              {isMorador ? 'Meus Visitantes' : 'Controle de Visitantes'}
+            </h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+              {isMorador ? 'Pré-autorize e gerencie a lista de visitantes da sua unidade.' : 'Registro de entradas e saídas da portaria.'}
+            </p>
           </div>
           
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -164,7 +209,7 @@ export default function Visitantes() {
 
             <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={openNewModal}>
               <Plus size={18} />
-              Registrar Entrada
+              {isMorador ? 'Pré-Autorizar' : 'Registrar Entrada'}
             </button>
           </div>
         </div>
@@ -191,11 +236,11 @@ export default function Visitantes() {
                   <tr key={visitante.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                     <td style={{ padding: '12px' }}>{visitante.nome}</td>
                     <td style={{ padding: '12px' }}>{visitante.nif || '-'}</td>
-                    <td style={{ padding: '12px' }}>{visitante.unidade?.numero || 'N/A'}</td>
+                    <td style={{ padding: '12px' }}>Unidade {visitante.unidade?.numero || 'N/A'}</td>
                     <td style={{ padding: '12px' }}>{formatDate(visitante.dataHoraEntrada)}</td>
                     <td style={{ padding: '12px' }}>{formatDate(visitante.dataHoraSaida)}</td>
                     <td style={{ padding: '12px', display: 'flex', justifyContent: 'center', gap: '12px' }}>
-                      {!visitante.dataHoraSaida && (
+                      {!visitante.dataHoraSaida && !isMorador && (
                         <button 
                           onClick={() => handleRegistrarSaida(visitante)}
                           style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: 'none', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
@@ -205,10 +250,10 @@ export default function Visitantes() {
                           Saída
                         </button>
                       )}
-                      <button onClick={() => handleEdit(visitante)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                      <button onClick={() => handleEdit(visitante)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                         <Edit size={16} />
                       </button>
-                      <button onClick={() => handleDelete(visitante.id)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                      <button onClick={() => handleDelete(visitante.id)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
                         <Trash2 size={16} />
                       </button>
                     </td>
@@ -216,7 +261,9 @@ export default function Visitantes() {
                 ))}
                 {filteredVisitantes.length === 0 && (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Nenhum visitante encontrado.</td>
+                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
+                      {isMorador ? 'Nenhum visitante pré-autorizado ou registrado para sua unidade.' : 'Nenhum visitante encontrado.'}
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -235,13 +282,13 @@ export default function Visitantes() {
           <div className="glass" style={{ width: '100%', maxWidth: '500px', padding: '32px', position: 'relative' }}>
             <button 
               onClick={() => setIsModalOpen(false)}
-              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+              style={{ position: 'absolute', top: '20px', right: '20px', background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
             >
               <X size={20} />
             </button>
 
             <h3 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '24px', color: 'white' }}>
-              {editingItem ? 'Editar Registro' : 'Registrar Novo Visitante'}
+              {editingItem ? 'Editar Registro' : (isMorador ? 'Pré-Autorizar Visitante' : 'Registrar Novo Visitante')}
             </h3>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -264,28 +311,37 @@ export default function Visitantes() {
                 />
               </div>
 
-              {/* Unidade (Dropdown) */}
+              {/* Unidade */}
               <div style={{ position: 'relative' }}>
                 <Home size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <select 
-                  name="unidadeId" value={formData.unidadeId} onChange={handleInputChange}
-                  style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
-                  required
-                >
-                  <option value="" style={{ background: '#0f172a' }}>Selecione a Unidade</option>
-                  {unidades.map((unidade) => (
-                    <option key={unidade.id} value={unidade.id} style={{ background: '#0f172a' }}>
-                      Unidade {unidade.numero} ({unidade.bloco?.nome || 'Sem Bloco'})
-                    </option>
-                  ))}
-                  {unidades.length === 0 && (
-                    <option value="" style={{ background: '#0f172a' }}>Nenhuma unidade cadastrada</option>
-                  )}
-                </select>
+                {isMorador ? (
+                  <input 
+                    type="text" 
+                    value={myUnidadeNumero ? `Minha Unidade (Unidade ${myUnidadeNumero})` : 'Carregando unidade...'} 
+                    disabled 
+                    style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', color: 'var(--text-muted)', cursor: 'not-allowed' }}
+                  />
+                ) : (
+                  <select 
+                    name="unidadeId" value={formData.unidadeId} onChange={handleInputChange}
+                    style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                    required
+                  >
+                    <option value="" style={{ background: '#0f172a' }}>Selecione a Unidade</option>
+                    {unidades.map((unidade) => (
+                      <option key={unidade.id} value={unidade.id} style={{ background: '#0f172a' }}>
+                        Unidade {unidade.numero} ({unidade.bloco?.nome || 'Sem Bloco'})
+                      </option>
+                    ))}
+                    {unidades.length === 0 && (
+                      <option value="" style={{ background: '#0f172a' }}>Nenhuma unidade cadastrada</option>
+                    )}
+                  </select>
+                )}
               </div>
 
               <button type="submit" className="btn-primary" style={{ marginTop: '8px' }}>
-                {editingItem ? 'Salvar Alterações' : 'Registrar Entrada'}
+                {editingItem ? 'Salvar Alterações' : (isMorador ? 'Autorizar Entrada' : 'Registrar Entrada')}
               </button>
             </form>
           </div>

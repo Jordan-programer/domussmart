@@ -16,6 +16,9 @@ export default function Unidades() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [useHelper, setUseHelper] = useState(true);
+  const [andar, setAndar] = useState('');
+  const [porta, setPorta] = useState('');
 
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
@@ -28,6 +31,27 @@ export default function Unidades() {
     fetchUnidades();
     fetchBlocos();
   }, []);
+
+  // Efeito para gerar automaticamente o número da unidade
+  useEffect(() => {
+    if (useHelper && formData.blocoId) {
+      const selectedBloco = blocos.find(b => b.id === parseInt(formData.blocoId));
+      if (selectedBloco) {
+        const nome = selectedBloco.nome || '';
+        const parts = nome.trim().split(/\s+/);
+        const lastPart = parts[parts.length - 1] || '';
+        const letter = lastPart.toUpperCase();
+        
+        if (andar !== '' && porta !== '') {
+          const paddedPorta = String(porta).padStart(2, '0');
+          const generatedNumero = `${letter}${andar}${paddedPorta}`;
+          setFormData(prev => ({ ...prev, numero: generatedNumero }));
+        } else {
+          setFormData(prev => ({ ...prev, numero: '' }));
+        }
+      }
+    }
+  }, [formData.blocoId, andar, porta, useHelper, blocos]);
 
   const fetchUnidades = async () => {
     try {
@@ -61,6 +85,19 @@ export default function Unidades() {
       blocoId: unidade.bloco?.id || '',
       vagas: unidade.vagas || ''
     });
+    
+    // Tenta desmembrar o número se ele seguir o padrão (Ex: A102 -> Bloco A, Andar 1, Porta 02)
+    const numeroStr = unidade.numero || '';
+    const match = numeroStr.match(/^([A-Za-z]+)(\d+)(\d{2})$/);
+    if (match) {
+      setAndar(match[2]);
+      setPorta(parseInt(match[3]).toString());
+      setUseHelper(true);
+    } else {
+      setAndar('');
+      setPorta('');
+      setUseHelper(false);
+    }
     setIsModalOpen(true);
   };
 
@@ -102,6 +139,9 @@ export default function Unidades() {
   const openNewModal = () => {
     setEditingItem(null);
     setFormData({ numero: '', blocoId: '', vagas: '' });
+    setAndar('');
+    setPorta('');
+    setUseHelper(true);
     setIsModalOpen(true);
   };
 
@@ -205,12 +245,89 @@ export default function Unidades() {
             </h3>
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Número */}
+              {/* Bloco (Dropdown) */}
+              <div style={{ position: 'relative' }}>
+                <Building size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <select 
+                  name="blocoId" value={formData.blocoId} onChange={handleInputChange}
+                  style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                  required
+                >
+                  <option value="" style={{ background: '#0f172a' }}>Selecione o Bloco *</option>
+                  {Array.isArray(blocos) && blocos.map((bloco) => (
+                    <option key={bloco.id} value={bloco.id} style={{ background: '#0f172a' }}>
+                      {bloco.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Opção de Geração Automática */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px' }}>
+                <input 
+                  type="checkbox" 
+                  id="useHelper" 
+                  checked={useHelper} 
+                  onChange={(e) => setUseHelper(e.target.checked)} 
+                  style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                />
+                <label htmlFor="useHelper" style={{ color: 'white', fontSize: '0.875rem', cursor: 'pointer', userSelect: 'none' }}>
+                  Gerar número da unidade automaticamente
+                </label>
+              </div>
+
+              {useHelper && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  {/* Andar */}
+                  <div style={{ position: 'relative' }}>
+                    <Home size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      type="number" 
+                      placeholder="Andar (Ex: 1)" 
+                      value={andar} 
+                      onChange={(e) => setAndar(e.target.value)}
+                      min="0"
+                      style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                      required={useHelper}
+                    />
+                  </div>
+
+                  {/* Porta */}
+                  <div style={{ position: 'relative' }}>
+                    <Home size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                    <input 
+                      type="number" 
+                      placeholder="Porta (Ex: 2)" 
+                      value={porta} 
+                      onChange={(e) => setPorta(e.target.value)}
+                      min="1"
+                      style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                      required={useHelper}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Número da Unidade (Preview ou Manual) */}
               <div style={{ position: 'relative' }}>
                 <Home size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
                 <input 
-                  type="text" name="numero" placeholder="Número da Unidade (Ex: 101)" value={formData.numero} onChange={handleInputChange}
-                  style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                  type="text" 
+                  name="numero" 
+                  placeholder={useHelper ? "Selecione bloco, andar e porta..." : "Número da Unidade (Ex: A102)"} 
+                  value={formData.numero} 
+                  onChange={handleInputChange}
+                  disabled={useHelper}
+                  style={{ 
+                    width: '100%', 
+                    padding: '12px 12px 12px 40px', 
+                    background: useHelper ? 'rgba(255,255,255,0.02)' : 'rgba(255,255,255,0.05)', 
+                    border: useHelper ? '1px dashed rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.1)', 
+                    borderRadius: '12px', 
+                    color: useHelper ? '#60a5fa' : 'white',
+                    fontWeight: useHelper ? 'bold' : 'normal',
+                    cursor: useHelper ? 'not-allowed' : 'text'
+                  }}
                   required
                 />
               </div>
@@ -222,23 +339,6 @@ export default function Unidades() {
                   type="number" name="vagas" placeholder="Quantidade de Vagas" value={formData.vagas} onChange={handleInputChange}
                   style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
                 />
-              </div>
-
-              {/* Bloco (Dropdown) */}
-              <div style={{ position: 'relative' }}>
-                <Building size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <select 
-                  name="blocoId" value={formData.blocoId} onChange={handleInputChange}
-                  style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
-                  required
-                >
-                  <option value="" style={{ background: '#0f172a' }}>Selecione o Bloco</option>
-                  {Array.isArray(blocos) && blocos.map((bloco) => (
-                    <option key={bloco.id} value={bloco.id} style={{ background: '#0f172a' }}>
-                      {bloco.nome}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               <button type="submit" className="btn-primary" style={{ marginTop: '8px' }}>

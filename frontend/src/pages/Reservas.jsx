@@ -6,6 +6,7 @@ import axios from 'axios';
 export default function Reservas() {
   const [reservas, setReservas] = useState([]);
   const [moradores, setMoradores] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -29,7 +30,25 @@ export default function Reservas() {
     }
     fetchReservas();
     fetchMoradores();
+    if (localStorage.getItem('role') === 'MORADOR') {
+      fetchCurrentUser();
+    }
   }, []);
+
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await axios.get('http://localhost:8080/api/v1/usuarios/me', { headers });
+      setCurrentUser(response.data);
+      if (response.data.moradorId) {
+        localStorage.setItem('moradorId', response.data.moradorId);
+      }
+      if (response.data.unidadeId) {
+        localStorage.setItem('unidadeId', response.data.unidadeId);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar dados do usuário:', err);
+    }
+  };
 
   const fetchReservas = async () => {
     try {
@@ -71,12 +90,21 @@ export default function Reservas() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const activeMoradorId = localStorage.getItem('role') === 'MORADOR' 
+        ? (currentUser?.moradorId || localStorage.getItem('moradorId'))
+        : formData.moradorId;
+
+      if (!activeMoradorId) {
+        alert('Erro: Morador não identificado. Certifique-se de que sua conta está vinculada a um perfil de morador.');
+        return;
+      }
+
       const payload = {
         area: formData.area,
-        morador: { id: parseInt(formData.moradorId) },
+        morador: { id: parseInt(activeMoradorId) },
         dataHoraInicio: new Date(formData.dataHoraInicio).toISOString(),
         dataHoraFim: new Date(formData.dataHoraFim).toISOString(),
-        status: formData.status
+        status: localStorage.getItem('role') === 'MORADOR' ? 'PENDENTE' : formData.status
       };
 
       if (editingItem) {
@@ -90,7 +118,7 @@ export default function Reservas() {
       setFormData({ area: '', moradorId: '', dataHoraInicio: '', dataHoraFim: '', status: 'PENDENTE' });
       fetchReservas(); // Recarrega a lista
     } catch (err) {
-      alert('Erro ao salvar reserva. Verifique os dados.');
+      alert('Erro ao salvar reserva. Verifique os dados e horários.');
     }
   };
 
@@ -120,7 +148,13 @@ export default function Reservas() {
 
   const openNewModal = () => {
     setEditingItem(null);
-    setFormData({ area: '', moradorId: '', dataHoraInicio: '', dataHoraFim: '', status: 'PENDENTE' });
+    setFormData({ 
+      area: '', 
+      moradorId: localStorage.getItem('role') === 'MORADOR' ? (currentUser?.moradorId || localStorage.getItem('moradorId') || '') : '', 
+      dataHoraInicio: '', 
+      dataHoraFim: '', 
+      status: 'PENDENTE' 
+    });
     setIsModalOpen(true);
   };
 
@@ -214,13 +248,15 @@ export default function Reservas() {
                     <td style={{ padding: '12px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
                       {reserva.status === 'PENDENTE' && (
                         <>
-                          <button 
-                            onClick={() => handleStatusChange(reserva, 'CONFIRMADA')}
-                            style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: 'none', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}
-                            title="Confirmar"
-                          >
-                            <Check size={14} />
-                          </button>
+                          {localStorage.getItem('role') !== 'MORADOR' && (
+                            <button 
+                              onClick={() => handleStatusChange(reserva, 'CONFIRMADA')}
+                              style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#4ade80', border: 'none', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}
+                              title="Confirmar"
+                            >
+                              <Check size={14} />
+                            </button>
+                          )}
                           <button 
                             onClick={() => handleStatusChange(reserva, 'CANCELADA')}
                             style={{ background: 'rgba(239, 68, 68, 0.2)', color: '#f87171', border: 'none', padding: '4px 8px', borderRadius: '6px', cursor: 'pointer' }}
@@ -280,21 +316,30 @@ export default function Reservas() {
                 />
               </div>
 
-              {/* Morador (Dropdown) */}
+              {/* Morador (Dropdown ou bloqueado se for Morador logado) */}
               <div style={{ position: 'relative' }}>
                 <User size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <select 
-                  name="moradorId" value={formData.moradorId} onChange={handleInputChange}
-                  style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
-                  required
-                >
-                  <option value="" style={{ background: '#0f172a' }}>Selecione o Morador</option>
-                  {moradores.map((morador) => (
-                    <option key={morador.id} value={morador.id} style={{ background: '#0f172a' }}>
-                      {morador.nome} (Unidade {morador.unidade?.numero || 'N/A'})
-                    </option>
-                  ))}
-                </select>
+                {localStorage.getItem('role') === 'MORADOR' ? (
+                  <input 
+                    type="text" 
+                    value={currentUser?.nome || 'Carregando perfil...'} 
+                    disabled 
+                    style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', color: 'var(--text-muted)', cursor: 'not-allowed' }}
+                  />
+                ) : (
+                  <select 
+                    name="moradorId" value={formData.moradorId} onChange={handleInputChange}
+                    style={{ width: '100%', padding: '12px 12px 12px 40px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }}
+                    required
+                  >
+                    <option value="" style={{ background: '#0f172a' }}>Selecione o Morador</option>
+                    {moradores.map((morador) => (
+                      <option key={morador.id} value={morador.id} style={{ background: '#0f172a' }}>
+                        {morador.nome} (Unidade {morador.unidade?.numero || 'N/A'})
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Data Início */}
@@ -323,8 +368,8 @@ export default function Reservas() {
                 </div>
               </div>
 
-              {/* Status (Apenas se estiver editando) */}
-              {editingItem && (
+              {/* Status (Apenas se estiver editando e não for Morador) */}
+              {editingItem && localStorage.getItem('role') !== 'MORADOR' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Status</label>
                   <select 

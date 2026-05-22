@@ -12,24 +12,39 @@ import Reservas from './pages/Reservas';
 import Chamados from './pages/Chamados';
 import Financeiro from './pages/Financeiro';
 import GestorMaximo from './pages/GestorMaximo';
+import Perfil from './pages/Perfil';
+import Usuarios from './pages/Usuarios';
+import Portaria from './pages/Portaria';
+
+function ProtectedRoute({ children }) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return children;
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/moradores" element={<Moradores />} />
-        <Route path="/unidades" element={<Unidades />} />
-        <Route path="/blocos" element={<Blocos />} />
-        <Route path="/condominio" element={<Condominio />} />
-        <Route path="/avisos" element={<Avisos />} />
-        <Route path="/visitantes" element={<Visitantes />} />
-        <Route path="/reservas" element={<Reservas />} />
-        <Route path="/chamados" element={<Chamados />} />
-        <Route path="/financeiro" element={<Financeiro />} />
-        <Route path="/gestor-maximo" element={<GestorMaximo />} />
-        <Route path="/" element={<Navigate to="/login" />} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/portaria" element={<ProtectedRoute><Portaria /></ProtectedRoute>} />
+        <Route path="/moradores" element={<ProtectedRoute><Moradores /></ProtectedRoute>} />
+        <Route path="/unidades" element={<ProtectedRoute><Unidades /></ProtectedRoute>} />
+        <Route path="/blocos" element={<ProtectedRoute><Blocos /></ProtectedRoute>} />
+        <Route path="/condominio" element={<ProtectedRoute><Condominio /></ProtectedRoute>} />
+        <Route path="/avisos" element={<ProtectedRoute><Avisos /></ProtectedRoute>} />
+        <Route path="/visitantes" element={<ProtectedRoute><Visitantes /></ProtectedRoute>} />
+        <Route path="/reservas" element={<ProtectedRoute><Reservas /></ProtectedRoute>} />
+        <Route path="/chamados" element={<ProtectedRoute><Chamados /></ProtectedRoute>} />
+        <Route path="/financeiro" element={<ProtectedRoute><Financeiro /></ProtectedRoute>} />
+        <Route path="/gestor-maximo" element={<ProtectedRoute><GestorMaximo /></ProtectedRoute>} />
+        <Route path="/perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
+        <Route path="/usuarios" element={<ProtectedRoute><Usuarios /></ProtectedRoute>} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   );

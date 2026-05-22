@@ -146,10 +146,12 @@ export default function Moradores() {
               />
             </div>
 
-            <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={openNewModal}>
-              <Plus size={18} />
-              Novo Morador
-            </button>
+            {localStorage.getItem('role') !== 'PORTEIRO' && (
+              <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={openNewModal}>
+                <Plus size={18} />
+                Novo Morador
+              </button>
+            )}
           </div>
         </div>
 
@@ -165,9 +167,12 @@ export default function Moradores() {
                   <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Nome</th>
                   <th style={{ padding: '12px', color: 'var(--text-muted)' }}>NIF</th>
                   <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Telefone</th>
+                  <th style={{ padding: '12px', color: 'var(--text-muted)' }}>E-mail</th>
                   <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Unidade</th>
                   <th style={{ padding: '12px', color: 'var(--text-muted)' }}>Tipo</th>
-                  <th style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Ações</th>
+                  {localStorage.getItem('role') !== 'PORTEIRO' && (
+                    <th style={{ padding: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Ações</th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -176,6 +181,7 @@ export default function Moradores() {
                     <td style={{ padding: '12px' }}>{morador.nome}</td>
                     <td style={{ padding: '12px' }}>{morador.nif || '-'}</td>
                     <td style={{ padding: '12px' }}>{morador.telefone || '-'}</td>
+                    <td style={{ padding: '12px' }}>{morador.email || '-'}</td>
                     <td style={{ padding: '12px' }}>{morador.unidade?.numero || 'N/A'}</td>
                     <td style={{ padding: '12px' }}>
                       <span style={{ 
@@ -186,19 +192,21 @@ export default function Moradores() {
                         {morador.tipo}
                       </span>
                     </td>
-                    <td style={{ padding: '12px', display: 'flex', justifyContent: 'center', gap: '12px' }}>
-                      <button onClick={() => handleEdit(morador)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                        <Edit size={16} />
-                      </button>
-                      <button onClick={() => handleDelete(morador.id)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
+                    {localStorage.getItem('role') !== 'PORTEIRO' && (
+                      <td style={{ padding: '12px', display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                        <button onClick={() => handleEdit(morador)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                          <Edit size={16} />
+                        </button>
+                        <button onClick={() => handleDelete(morador.id)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 ))}
                 {filteredMoradores.length === 0 && (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Nenhum morador encontrado.</td>
+                    <td colSpan={localStorage.getItem('role') === 'PORTEIRO' ? 6 : 7} style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>Nenhum morador encontrado.</td>
                   </tr>
                 )}
               </tbody>

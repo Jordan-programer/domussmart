@@ -26,15 +26,23 @@ export default function Condominio() {
 
   const fetchCondominio = async () => {
     try {
-      const response = await axios.get('http://localhost:8080/api/v1/condominios', { headers });
-      // Como a regra é 1 admin por condomínio, pegamos o primeiro da lista
-      if (response.data.length > 0) {
-        setCondominio(response.data[0]);
-        setFormData({
-          nome: response.data[0].nome,
-          nif: response.data[0].nif || '',
-          endereco: response.data[0].endereco || ''
-        });
+      // 1. Obter o perfil do usuário logado para descobrir o seu condomínio específico
+      const userResponse = await axios.get('http://localhost:8080/api/v1/usuarios/me', { headers });
+      const condoId = userResponse.data.condominioId;
+
+      if (condoId) {
+        // 2. Buscar as informações específicas deste condomínio
+        const response = await axios.get(`http://localhost:8080/api/v1/condominios/${condoId}`, { headers });
+        if (response.data) {
+          setCondominio(response.data);
+          setFormData({
+            nome: response.data.nome,
+            nif: response.data.nif || '',
+            endereco: response.data.endereco || ''
+          });
+        }
+      } else {
+        setError('Você não possui um condomínio associado ao seu usuário.');
       }
       setLoading(false);
     } catch (err) {
@@ -54,11 +62,13 @@ export default function Condominio() {
       if (condominio) {
         // Atualiza
         await axios.post('http://localhost:8080/api/v1/condominios', { id: condominio.id, ...formData }, { headers });
+        localStorage.setItem('condominioNome', formData.nome);
         alert('Condomínio atualizado com sucesso!');
       } else {
         // Cria o primeiro
         const response = await axios.post('http://localhost:8080/api/v1/condominios', formData, { headers });
         setCondominio(response.data);
+        localStorage.setItem('condominioNome', response.data.nome);
         alert('Condomínio cadastrado com sucesso!');
       }
       fetchCondominio();

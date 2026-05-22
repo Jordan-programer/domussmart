@@ -272,12 +272,6 @@ export default function GestorMaximo() {
               <div>
                 <input type="password" name="senha" placeholder="Senha" value={userFormData.senha} onChange={handleUserInputChange} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }} required />
               </div>
-              <div>
-                <select name="role" value={userFormData.role} onChange={handleUserInputChange} style={{ width: '100%', padding: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', color: 'white' }} required>
-                  <option value="SINDICO" style={{ background: '#0f172a' }}>Síndico (Gestor do Condomínio)</option>
-                  <option value="PORTEIRO" style={{ background: '#0f172a' }}>Porteiro</option>
-                </select>
-              </div>
               <button type="submit" className="btn-primary" style={{ marginTop: '8px' }}>Criar Usuário</button>
             </form>
           </div>

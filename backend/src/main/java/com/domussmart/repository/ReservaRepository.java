@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface ReservaRepository extends JpaRepository<Reserva, Long> {
     List<Reserva> findByMoradorUnidadeBlocoCondominioId(Long condominioId);
+    List<Reserva> findByMoradorId(Long moradorId);
 }

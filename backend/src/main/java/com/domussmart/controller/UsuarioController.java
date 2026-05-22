@@ -1,13 +1,16 @@
 package com.domussmart.controller;
 
 import com.domussmart.model.Usuario;
+import com.domussmart.model.Visitante;
 import com.domussmart.repository.UsuarioRepository;
 import com.domussmart.repository.MoradorRepository;
 import com.domussmart.repository.CondominioRepository;
+import com.domussmart.repository.VisitanteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
@@ -24,6 +27,9 @@ public class UsuarioController {
 
     @Autowired
     private CondominioRepository condominioRepository;
+
+    @Autowired
+    private VisitanteRepository visitanteRepository;
 
     public record UsuarioResponseDTO(
             Long id,
@@ -303,6 +309,7 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
+    @Transactional
     public ResponseEntity<Void> deleteUsuario(@PathVariable Long id) {
         Usuario loggedUser = (Usuario) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (loggedUser.getRole() != Usuario.Role.ADMIN && loggedUser.getRole() != Usuario.Role.SINDICO) {
@@ -321,11 +328,13 @@ public class UsuarioController {
             }
         }
         
-        if (user.getId().equals(loggedUser.getId())) {
-            return ResponseEntity.badRequest().build();
+        List<Visitante> visitantes = visitanteRepository.findByRegistradoPorId(id);
+        for (Visitante v : visitantes) {
+            v.setRegistradoPor(null);
         }
+        visitanteRepository.saveAll(visitantes);
         
         usuarioRepository.delete(user);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.noContent().build();
     }
 }

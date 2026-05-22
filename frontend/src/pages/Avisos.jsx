@@ -142,10 +142,12 @@ export default function Avisos() {
               />
             </div>
 
-            <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={openNewModal}>
-              <Plus size={18} />
-              Novo Aviso
-            </button>
+            {localStorage.getItem('role') !== 'PORTEIRO' && localStorage.getItem('role') !== 'MORADOR' && (
+              <button className="btn-primary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }} onClick={openNewModal}>
+                <Plus size={18} />
+                Novo Aviso
+              </button>
+            )}
           </div>
         </div>
 
@@ -177,14 +179,16 @@ export default function Avisos() {
                   {aviso.descricao}
                 </p>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                  <button onClick={() => handleEdit(aviso)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <Edit size={16} />
-                  </button>
-                  <button onClick={() => handleDelete(aviso.id)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+                {localStorage.getItem('role') !== 'PORTEIRO' && localStorage.getItem('role') !== 'MORADOR' && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                    <button onClick={() => handleEdit(aviso)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                      <Edit size={16} />
+                    </button>
+                    <button onClick={() => handleDelete(aviso.id)} style={{ background: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
             {filteredAvisos.length === 0 && (

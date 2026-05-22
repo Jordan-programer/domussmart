@@ -12,4 +12,5 @@ public interface MoradorRepository extends JpaRepository<Morador, Long> {
     List<Morador> findByUnidadeBlocoCondominioId(Long condominioId);
     Optional<Morador> findByEmail(String email);
     Optional<Morador> findByEmailAndNif(String email, String nif);
+    List<Morador> findByUnidadeId(Long unidadeId);
 }

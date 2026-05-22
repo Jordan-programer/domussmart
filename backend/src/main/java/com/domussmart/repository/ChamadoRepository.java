@@ -8,4 +8,6 @@ import java.util.List;
 @Repository
 public interface ChamadoRepository extends JpaRepository<Chamado, Long> {
     List<Chamado> findByUnidadeBlocoCondominioId(Long condominioId);
+    List<Chamado> findByMoradorId(Long moradorId);
+    List<Chamado> findByUnidadeId(Long unidadeId);
 }
